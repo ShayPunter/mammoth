@@ -1,0 +1,4 @@
+# Mammoth Configuration v0.0.1
+worldql-ip: "127.0.0.1"
+worldql-port: "5556"
+worldql-endpoint-port: "5555"

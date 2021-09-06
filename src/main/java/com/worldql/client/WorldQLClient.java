@@ -6,6 +6,8 @@ import org.zeromq.SocketType;
 import org.zeromq.ZContext;
 import org.zeromq.ZMQ;
 
+import java.io.File;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -22,16 +24,27 @@ public class WorldQLClient extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        if (firstRun()) {
+            getLogger().info("Thanks for using WorldQL & Mammoth! Please configure this plugin before enabling.");
+            saveDefaultConfig();
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+
+        saveDefaultConfig();
         pluginInstance = this;
+
+        String ip = getConfig().getString("worldql-ip");
+        String worldQLPort = getConfig().getString("worldql-port");
+        String worldQLEndpointPort = getConfig().getString("worldql-endpoint-port");
+
         getLogger().info("Initializing Mammoth WorldQL client.");
         context = new ZContext();
         pushSocket = context.createSocket(SocketType.PUSH);
         packetReader = new PacketReader();
         ZMQ.Socket handshakeSocket = context.createSocket(SocketType.REQ);
-        handshakeSocket.connect("tcp://127.0.0.1:5556");
+        handshakeSocket.connect("tcp://" + ip + ":" + worldQLPort);
 
-
-        String myIP = "127.0.0.1";
         /*
         try (final DatagramSocket datagramSocket = new DatagramSocket()) {
             datagramSocket.connect(InetAddress.getByName("8.8.8.8"), 10002);
@@ -56,12 +69,12 @@ public class WorldQLClient extends JavaPlugin {
             getLogger().severe(e.getMessage());
         }
 
-        handshakeSocket.send(myIP.getBytes(ZMQ.CHARSET), zmq.ZMQ.ZMQ_DONTWAIT);
+        handshakeSocket.send(ip.getBytes(ZMQ.CHARSET), zmq.ZMQ.ZMQ_DONTWAIT);
         byte[] reply = handshakeSocket.recv(zmq.ZMQ.ZMQ_DONTWAIT);
         String assignedZeroMQPort = new String(reply, ZMQ.CHARSET);
         zmqPortClientId = Integer.parseInt(assignedZeroMQPort);
 
-        pushSocket.connect("tcp://127.0.0.1:5555");
+        pushSocket.connect("tcp://" + ip + ":" + worldQLEndpointPort);
 
         getServer().getPluginManager().registerEvents(new PlayerMoveAndLookHandler(), this);
         getServer().getPluginManager().registerEvents(new PlayerJoinEventListener(), this);
@@ -105,5 +118,14 @@ public class WorldQLClient extends JavaPlugin {
 
     public int getZmqPortClientId() {
         return zmqPortClientId;
+    }
+
+    /**
+     * Check if this is the first install of the plugin
+     * @return if this is the first run of the plugin
+     */
+    private boolean firstRun() {
+        File file = new File(getDataFolder(), "config.yml");
+        return !file.exists();
     }
 }
